@@ -1,0 +1,45 @@
+name: Build and Deploy Slides
+
+on:
+  push:
+    branches:
+      - test  # Only trigger on push to main branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Set up Python 3.12
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'  # Use Python 3.12
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install git+https://github.com/MartenBE/mkslides.git  # Install mkslides from GitHub
+
+    - name: Build slides
+      run: |
+        mkslides build --config-file docs/mkslides.yml docs/Money_Matters_Presentation.md
+        mkdir -p build/Money_Matters_Presentation
+        cp -r /home/runner/work/Financial-literacy-for-Teens/Financial-literacy-for-Teens/site/* build/Money_Matters_Presentation
+        mkslides build --config-file docs/mkslides.yml docs/Term_insurance_ppt.md
+         mkdir -p build/Term_insurance_ppt
+        cp -r /home/runner/work/Financial-literacy-for-Teens/Financial-literacy-for-Teens/site/* build/Term_insurance_ppt
+        # Debug: List the files in the current directory to see if build/ exists
+        ls -alh
+        # Check if 'build/' exists and create if necessary        
+
+    - name: Commit and push built slides
+      run: |
+        git config --global user.name 'github-actions'
+        git config --global user.email 'github-actions@github.com'
+        git add build/
+        git diff --cached --quiet || (git commit -m "Auto-build slides with MkSlides" && git push)
